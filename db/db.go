@@ -3,35 +3,29 @@ package db
 import (
 	"database/sql"
 	"log"
-
 	"math/big"
 
 	_ "github.com/lib/pq"
 )
-
-type DB struct {
-	conn *sql.DB
-}
 
 // DBInterface defines the methods that our database needs to implement
 type DBInterface interface {
 	SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error
 }
 
-// Ensure the actual db object implements the interface
-var _ DBInterface = (*DB)(nil)
+// DB is a struct that holds the database connection
+type DB struct {
+	conn *sql.DB
+}
 
-// InitDB initializes the database connection and ensures the required table exists
-// InitDB initializes the database connection and returns the DBInterface
+// InitDB initializes the database connection and returns the DB instance
 func InitDB(connStr string) DBInterface {
-	var db *sql.DB
-	var err error
-	db, err = sql.Open("postgres", connStr)
+	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	err = db.Ping()
+	err = conn.Ping()
 	if err != nil {
 		log.Fatalf("Failed to ping the database: %v", err)
 	}
@@ -53,16 +47,17 @@ func InitDB(connStr string) DBInterface {
 	);
 	`
 
-	_, err = db.Exec(createTableQuery)
+	_, err = conn.Exec(createTableQuery)
 	if err != nil {
 		log.Fatalf("Failed to create table: %v", err)
 	}
 
 	log.Println("Table erc20_events exists or created successfully")
 
-	return &DB{db}
+	return &DB{conn: conn}
 }
 
+// SaveEvent saves an indexed event to the database
 func (db *DB) SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error {
 	var valueStr *string
 	if value != nil {
@@ -70,8 +65,8 @@ func (db *DB) SaveEvent(blockNumber uint64, txHash, eventType string, from, to, 
 		valueStr = &v
 	}
 	_, err := db.conn.Exec(`
-			INSERT INTO erc20_events (block_number, tx_hash, event_type, from_address, to_address, owner_address, spender_address, value)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO erc20_events (block_number, tx_hash, event_type, from_address, to_address, owner_address, spender_address, value)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, blockNumber, txHash, eventType, from, to, owner, spender, valueStr)
 	return err
 }
