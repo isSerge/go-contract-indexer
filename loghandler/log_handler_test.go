@@ -13,11 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
+// Initialize the environment variable for the ABI path
 func init() {
-	// Set the ABI path for testing
 	os.Setenv("ERC20_ABI_PATH", "../erc20/erc20.abi") // Adjust the path as necessary
 }
 
@@ -35,13 +36,18 @@ func (m *MockSubscription) Err() <-chan error {
 	return args.Get(0).(<-chan error)
 }
 
-// MockDB is a mock of the db package's SaveEvent function
+// MockDB is a mock of the db package's DBInterface
 type MockDB struct {
 	mock.Mock
 }
 
 func (m *MockDB) SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error {
 	args := m.Called(blockNumber, txHash, eventType, from, to, owner, spender, value)
+	return args.Error(0)
+}
+
+func (m *MockDB) Close() error {
+	args := m.Called()
 	return args.Error(0)
 }
 
@@ -76,6 +82,7 @@ func TestHandleTransferLogs(t *testing.T) {
 	// Create a mock DB
 	mockDB := new(MockDB)
 	mockDB.On("SaveEvent", mock.AnythingOfType("uint64"), mock.AnythingOfType("string"), "Transfer", mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), (*string)(nil), (*string)(nil), mock.AnythingOfType("*big.Int")).Return(nil)
+	mockDB.On("Close").Return(nil).Once() // Ensure it is expected once
 
 	// Create a context and a cancel function to simulate graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -94,9 +101,6 @@ func TestHandleTransferLogs(t *testing.T) {
 	// Allow some time for the log to be processed
 	time.Sleep(1 * time.Second)
 
-	// Verify that the log was processed and saved
-	mockDB.AssertExpectations(t)
-
 	// Simulate shutdown by canceling the context
 	cancel()
 
@@ -108,6 +112,11 @@ func TestHandleTransferLogs(t *testing.T) {
 
 	// Ensure that the subscription was unsubscribed
 	mockSub.AssertCalled(t, "Unsubscribe")
+
+	// Close the mock database connection
+	err := mockDB.Close()
+	assert.NoError(t, err, "Expected no error while closing the database connection")
+	mockDB.AssertExpectations(t)
 }
 
 func TestHandleApprovalLogs(t *testing.T) {
@@ -141,6 +150,7 @@ func TestHandleApprovalLogs(t *testing.T) {
 	// Create a mock DB
 	mockDB := new(MockDB)
 	mockDB.On("SaveEvent", mock.AnythingOfType("uint64"), mock.AnythingOfType("string"), "Approval", (*string)(nil), (*string)(nil), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*big.Int")).Return(nil)
+	mockDB.On("Close").Return(nil).Once() // Ensure it is expected once
 
 	// Create a context and a cancel function to simulate graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -159,9 +169,6 @@ func TestHandleApprovalLogs(t *testing.T) {
 	// Allow some time for the log to be processed
 	time.Sleep(1 * time.Second)
 
-	// Verify that the log was processed and saved
-	mockDB.AssertExpectations(t)
-
 	// Simulate shutdown by canceling the context
 	cancel()
 	t.Log("Context cancelled")
@@ -175,4 +182,9 @@ func TestHandleApprovalLogs(t *testing.T) {
 
 	// Ensure that the subscription was unsubscribed
 	mockSub.AssertCalled(t, "Unsubscribe")
+
+	// Close the mock database connection
+	err := mockDB.Close()
+	assert.NoError(t, err, "Expected no error while closing the database connection")
+	mockDB.AssertExpectations(t)
 }

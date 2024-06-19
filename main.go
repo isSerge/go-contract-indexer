@@ -68,6 +68,7 @@ func main() {
 
 	// Initialize the database connection
 	database := db.InitDB(dbConnStr)
+	defer database.Close()
 
 	// Initialize the ABI
 	parser.Init()

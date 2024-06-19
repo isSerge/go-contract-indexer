@@ -9,6 +9,7 @@ import (
 // Interface defines the methods that our database needs to implement
 type Interface interface {
 	SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error
+	Close() error
 }
 
 // DB is a struct that holds the database connection
@@ -67,4 +68,9 @@ func (db *DB) SaveEvent(blockNumber uint64, txHash, eventType string, from, to, 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, blockNumber, txHash, eventType, from, to, owner, spender, valueStr)
 	return err
+}
+
+// Close closes the database connection
+func (db *DB) Close() error {
+	return db.conn.Close()
 }

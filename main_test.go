@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -21,16 +20,6 @@ func (m *MockSubscription) Unsubscribe() {
 func (m *MockSubscription) Err() <-chan error {
 	args := m.Called()
 	return args.Get(0).(<-chan error)
-}
-
-// MockDB is a mock of the db package's SaveEvent function
-type MockDB struct {
-	mock.Mock
-}
-
-func (m *MockDB) SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error {
-	args := m.Called(blockNumber, txHash, eventType, from, to, owner, spender, value)
-	return args.Error(0)
 }
 
 func initTestConfig() {
