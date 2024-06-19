@@ -14,6 +14,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"go-contract-indexer/erc20"
+	"go-contract-indexer/parser"
 )
 
 func main() {
@@ -62,8 +63,19 @@ func main() {
 		case err := <-sub.Err():
 			log.Fatalf("Error: %v", err)
 		case vLog := <-logs:
-			// TODO: Parse the log data and print the event details
-			fmt.Printf("Log Block Number: %d\n", vLog.BlockNumber)
+			event, err := parser.UnpackLog(vLog)
+			if err != nil {
+				log.Fatalf("Failed to unpack log: %v", err)
+			}
+
+			switch e := event.(type) {
+			case *parser.ERC20Transfer:
+				fmt.Printf("Transfer Event: From %s To %s Value %s\n", e.From.Hex(), e.To.Hex(), e.Value.String())
+			case *parser.ERC20Approval:
+				fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", e.Owner.Hex(), e.Spender.Hex(), e.Value.String())
+			default:
+				fmt.Printf("Unknown event type\n")
+			}
 		}
 	}
 }
