@@ -12,8 +12,8 @@ var (
 	transferEventSignature = []byte("Transfer(address,address,uint256)")
 	approvalEventSignature = []byte("Approval(address,address,uint256)")
 
-	transferEventSigHash = crypto.Keccak256Hash(transferEventSignature)
-	approvalEventSigHash = crypto.Keccak256Hash(approvalEventSignature)
+	TransferEventSigHash = crypto.Keccak256Hash(transferEventSignature)
+	ApprovalEventSigHash = crypto.Keccak256Hash(approvalEventSignature)
 )
 
 type ERC20Transfer struct {
