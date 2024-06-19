@@ -85,8 +85,11 @@ func main() {
 		logger.Fatalf("Error: %v", err)
 	}
 
+	// Create LogHandler instance
+	logHandler := loghandler.NewLogHandler(database, logger)
+
 	// Handle incoming logs
-	loghandler.HandleLogs(ctx, logs, sub, database, logger)
+	logHandler.HandleLogs(ctx, logs, sub)
 }
 
 // printTokenInfo prints the token information for the given contract address.

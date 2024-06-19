@@ -50,7 +50,7 @@ func TestHandleTransferLogs(t *testing.T) {
 	parser.Init()
 
 	// Create mock logger
-	var mockLogger = logrus.New()
+	mockLogger := logrus.New()
 
 	// Create mock subscription and logs channel
 	mockSub := new(MockSubscription)
@@ -81,11 +81,14 @@ func TestHandleTransferLogs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
+	// Create LogHandler instance
+	logHandler := NewLogHandler(mockDB, mockLogger)
+
 	// Start handling logs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		HandleLogs(ctx, logs, mockSub, mockDB, mockLogger)
+		logHandler.HandleLogs(ctx, logs, mockSub)
 	}()
 
 	// Allow some time for the log to be processed
@@ -112,7 +115,7 @@ func TestHandleApprovalLogs(t *testing.T) {
 	parser.Init()
 
 	// Create mock logger
-	var mockLogger = logrus.New()
+	mockLogger := logrus.New()
 
 	// Create mock subscription and logs channel
 	mockSub := new(MockSubscription)
@@ -143,11 +146,14 @@ func TestHandleApprovalLogs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
+	// Create LogHandler instance
+	logHandler := NewLogHandler(mockDB, mockLogger)
+
 	// Start handling logs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		HandleLogs(ctx, logs, mockSub, mockDB, mockLogger)
+		logHandler.HandleLogs(ctx, logs, mockSub)
 	}()
 
 	// Allow some time for the log to be processed
