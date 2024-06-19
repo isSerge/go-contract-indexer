@@ -19,20 +19,8 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
-
-	// Get the RPC_URL, CONTRACT_ADDRESS, and DB_CONN_STR from the .env file
-	rpcURL := os.Getenv("RPC_URL")
-	contractAddress := os.Getenv("CONTRACT_ADDRESS")
-	dbConnStr := os.Getenv("DB_CONN_STR")
-
-	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
-		log.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
-	}
+	// Load configuration
+	rpcURL, contractAddress, dbConnStr := loadConfig()
 
 	// Initialize the database connection
 	db.InitDB(dbConnStr)
@@ -53,53 +41,41 @@ func main() {
 		Addresses: []common.Address{contractAddr},
 	}
 
-	// Create a channel to receive the logs from the contract and subscribe to the logs
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		log.Fatalf("Failed to subscribe to logs: %v", err)
 	}
 
-	// Print contract address, token name, and symbol
+	// Print contract details
 	err = printTokenInfo(client, contractAddr)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 
-	for {
-		select {
-		case err := <-sub.Err():
-			log.Fatalf("Error: %v", err)
-		case vLog := <-logs:
-			event, err := parser.UnpackLog(vLog)
-			if err != nil {
-				log.Fatalf("Failed to unpack log: %v", err)
-			}
-
-			switch e := event.(type) {
-			case *parser.ERC20Transfer:
-				fmt.Printf("Transfer Event: From %s To %s Value %s\n", e.From.Hex(), e.To.Hex(), e.Value.String())
-				from := e.From.Hex()
-				to := e.To.Hex()
-				err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Transfer", &from, &to, nil, nil, e.Value)
-				if err != nil {
-					log.Fatalf("Failed to save event: %v", err)
-				}
-			case *parser.ERC20Approval:
-				fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", e.Owner.Hex(), e.Spender.Hex(), e.Value.String())
-				owner := e.Owner.Hex()
-				spender := e.Spender.Hex()
-				err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Approval", nil, nil, &owner, &spender, e.Value)
-				if err != nil {
-					log.Fatalf("Failed to save event: %v", err)
-				}
-			default:
-				fmt.Printf("Unknown event type\n")
-			}
-		}
-	}
+	// Handle incoming logs
+	handleLogs(logs, sub)
 }
 
+// loadConfig loads the configuration from the .env file.
+func loadConfig() (string, string, string) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	rpcURL := os.Getenv("RPC_URL")
+	contractAddress := os.Getenv("CONTRACT_ADDRESS")
+	dbConnStr := os.Getenv("DB_CONN_STR")
+
+	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
+		log.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
+	}
+
+	return rpcURL, contractAddress, dbConnStr
+}
+
+// printTokenInfo prints the token information for the given contract address.
 func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error {
 	token, err := erc20.NewErc20(contractAddr, client)
 	if err != nil {
@@ -124,4 +100,51 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 	fmt.Printf("Symbol: %s\n", symbol)
 
 	return nil
+}
+
+// handleLogs processes the logs received from the Ethereum client.
+func handleLogs(logs chan types.Log, sub ethereum.Subscription) {
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatalf("Subscription error: %v", err)
+		case vLog := <-logs:
+			event, err := parser.UnpackLog(vLog)
+			if err != nil {
+				log.Printf("Failed to unpack log: %v", err)
+				continue
+			}
+
+			switch e := event.(type) {
+			case *parser.ERC20Transfer:
+				handleTransferEvent(e, vLog)
+			case *parser.ERC20Approval:
+				handleApprovalEvent(e, vLog)
+			default:
+				log.Printf("Unknown event type")
+			}
+		}
+	}
+}
+
+// handleTransferEvent handles the Transfer event logs.
+func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log) {
+	from := e.From.Hex()
+	to := e.To.Hex()
+	fmt.Printf("Transfer Event: From %s To %s Value %s\n", from, to, e.Value.String())
+	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Transfer", &from, &to, nil, nil, e.Value)
+	if err != nil {
+		log.Printf("Failed to save transfer event: %v", err)
+	}
+}
+
+// handleApprovalEvent handles the Approval event logs.
+func handleApprovalEvent(e *parser.ERC20Approval, vLog types.Log) {
+	owner := e.Owner.Hex()
+	spender := e.Spender.Hex()
+	fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", owner, spender, e.Value.String())
+	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Approval", nil, nil, &owner, &spender, e.Value)
+	if err != nil {
+		log.Printf("Failed to save approval event: %v", err)
+	}
 }
