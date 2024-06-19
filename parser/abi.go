@@ -49,7 +49,7 @@ func SetABI(mockedABI string) {
 	}
 }
 
-// Helper function to unpack logs
+// UnpackLog unpacks logs into their respective events.
 func UnpackLog(log types.Log) (interface{}, error) {
 	switch log.Topics[0] {
 	case TransferEventSigHash:

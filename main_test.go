@@ -38,7 +38,9 @@ func initTestConfig() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
-	viper.ReadInConfig()
+	if err := viper.ReadInConfig(); err != nil {
+		panic(err)
+	}
 }
 
 func TestLoadConfig(t *testing.T) {

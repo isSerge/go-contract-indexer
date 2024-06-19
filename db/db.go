@@ -4,12 +4,10 @@ import (
 	"database/sql"
 	"log"
 	"math/big"
-
-	_ "github.com/lib/pq"
 )
 
-// DBInterface defines the methods that our database needs to implement
-type DBInterface interface {
+// Interface defines the methods that our database needs to implement
+type Interface interface {
 	SaveEvent(blockNumber uint64, txHash, eventType string, from, to, owner, spender *string, value *big.Int) error
 }
 
@@ -19,7 +17,7 @@ type DB struct {
 }
 
 // InitDB initializes the database connection and returns the DB instance
-func InitDB(connStr string) DBInterface {
+func InitDB(connStr string) Interface {
 	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)

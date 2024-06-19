@@ -10,12 +10,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// LogHandler handles the processing of logs received from the Ethereum client.
 type LogHandler struct {
-	DB     db.DBInterface
+	DB     db.Interface
 	Logger logrus.FieldLogger
 }
 
-func NewLogHandler(db db.DBInterface, logger logrus.FieldLogger) *LogHandler {
+// NewLogHandler creates a new instance of LogHandler.
+func NewLogHandler(db db.Interface, logger logrus.FieldLogger) *LogHandler {
 	return &LogHandler{
 		DB:     db,
 		Logger: logger,
