@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -70,6 +73,11 @@ func main() {
 		log.Fatalf("Failed to subscribe to logs: %v", err)
 	}
 
+	// Handle graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go handleShutdown(cancel, sub)
+
 	// Print contract details
 	err = printTokenInfo(client, contractAddr)
 	if err != nil {
@@ -77,7 +85,7 @@ func main() {
 	}
 
 	// Handle incoming logs
-	handleLogs(logs, sub, database)
+	handleLogs(ctx, logs, sub, database)
 }
 
 // printTokenInfo prints the token information for the given contract address.
@@ -99,16 +107,16 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 		return fmt.Errorf("failed to get token symbol: %v", err)
 	}
 
-	log.Infof("Starting indexer for ERC-20 contract: \n")
-	log.Infof("Address: %s\n", contractAddr.Hex())
-	log.Infof("Name: %s\n", name)
-	log.Infof("Symbol: %s\n", symbol)
+	log.Infof("Starting indexer for ERC-20 contract:")
+	log.Infof("Address: %s", contractAddr.Hex())
+	log.Infof("Name: %s", name)
+	log.Infof("Symbol: %s", symbol)
 
 	return nil
 }
 
 // handleLogs processes the logs received from the Ethereum client.
-func handleLogs(logs chan types.Log, sub ethereum.Subscription, db db.DBInterface) {
+func handleLogs(ctx context.Context, logs chan types.Log, sub ethereum.Subscription, db db.DBInterface) {
 	for {
 		select {
 		case err := <-sub.Err():
@@ -128,6 +136,10 @@ func handleLogs(logs chan types.Log, sub ethereum.Subscription, db db.DBInterfac
 			default:
 				log.Printf("Unknown event type")
 			}
+		case <-ctx.Done():
+			log.Info("Shutting down log handling")
+			sub.Unsubscribe()
+			return
 		}
 	}
 }
@@ -136,10 +148,10 @@ func handleLogs(logs chan types.Log, sub ethereum.Subscription, db db.DBInterfac
 func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log, db db.DBInterface) {
 	from := e.From.Hex()
 	to := e.To.Hex()
-	log.Infof("Transfer Event: From %s To %s Value %s\n", from, to, e.Value.String())
+	log.Infof("Transfer Event: From %s To %s Value %s", from, to, e.Value.String())
 	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Transfer", &from, &to, nil, nil, e.Value)
 	if err != nil {
-		log.Printf("Failed to save transfer event: %v", err)
+		log.Errorf("Failed to save transfer event: %v", err)
 	}
 }
 
@@ -147,9 +159,19 @@ func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log, db db.DBInterf
 func handleApprovalEvent(e *parser.ERC20Approval, vLog types.Log, db db.DBInterface) {
 	owner := e.Owner.Hex()
 	spender := e.Spender.Hex()
-	log.Infof("Approval Event: Owner %s Spender %s Value %s\n", owner, spender, e.Value.String())
+	log.Infof("Approval Event: Owner %s Spender %s Value %s", owner, spender, e.Value.String())
 	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Approval", nil, nil, &owner, &spender, e.Value)
 	if err != nil {
-		log.Printf("Failed to save approval event: %v", err)
+		log.Errorf("Failed to save approval event: %v", err)
 	}
+}
+
+// handleShutdown handles graceful shutdown on receiving a termination signal.
+func handleShutdown(cancel context.CancelFunc, sub ethereum.Subscription) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	log.Info("Received shutdown signal")
+	cancel()
+	sub.Unsubscribe()
 }
