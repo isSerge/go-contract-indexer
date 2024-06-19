@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -39,7 +40,23 @@ func init() {
 	logger.Level = logrus.DebugLevel
 }
 
+func validateConfig() error {
+	if viper.GetString("RPC_URL") == "" {
+		return errors.New("RPC_URL is required")
+	}
+	if viper.GetString("CONTRACT_ADDRESS") == "" {
+		return errors.New("CONTRACT_ADDRESS is required")
+	}
+	if viper.GetString("DB_CONN_STR") == "" {
+		return errors.New("DB_CONN_STR is required")
+	}
+	return nil
+}
+
 func main() {
+	if err := validateConfig(); err != nil {
+		logger.Fatalf("Configuration validation failed: %v", err)
+	}
 	// Load configuration
 	rpcURL := viper.GetString("RPC_URL")
 	contractAddress := viper.GetString("CONTRACT_ADDRESS")
@@ -111,10 +128,11 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 		return fmt.Errorf("failed to get token symbol: %v", err)
 	}
 
-	logger.Infof("Starting indexer for ERC-20 contract:")
-	logger.Infof("Address: %s", contractAddr.Hex())
-	logger.Infof("Name: %s", name)
-	logger.Infof("Symbol: %s", symbol)
+	logger.WithFields(logrus.Fields{
+		"address": contractAddr.Hex(),
+		"name":    name,
+		"symbol":  symbol,
+	}).Info("Starting indexer for ERC-20 contract")
 
 	return nil
 }
