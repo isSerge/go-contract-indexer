@@ -7,10 +7,13 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/joho/godotenv"
+
+	"go-event-watcher/erc20"
 )
 
 func main() {
@@ -48,8 +51,8 @@ func main() {
 		log.Fatalf("Failed to subscribe to logs: %v", err)
 	}
 
-	// TODO: print contract address, token name, and symbol
-	fmt.Printf("Watching for events from contract: %s\n", contractAddress)
+	// Print contract address, token name, and symbol
+	printTokenInfo(client, contractAddr)
 
 	for {
 		select {
@@ -60,4 +63,28 @@ func main() {
 			fmt.Printf("Log Block Number: %d\n", vLog.BlockNumber)
 		}
 	}
+}
+
+func printTokenInfo(client *ethclient.Client, contractAddr common.Address) {
+	token, err := erc20.NewErc20(contractAddr, client)
+	if err != nil {
+		log.Fatalf("Failed to instantiate token contract: %v", err)
+	}
+
+	callOpts := &bind.CallOpts{}
+
+	name, err := token.Name(callOpts)
+	if err != nil {
+		log.Fatalf("Failed to get token name: %v", err)
+	}
+
+	symbol, err := token.Symbol(callOpts)
+	if err != nil {
+		log.Fatalf("Failed to get token symbol: %v", err)
+	}
+
+	fmt.Printf("Watching for events from ERC-20 contract: ")
+	fmt.Printf("Address: %s\n", contractAddr.Hex())
+	fmt.Printf("Name: %s\n", name)
+	fmt.Printf("Symbol: %s\n", symbol)
 }
