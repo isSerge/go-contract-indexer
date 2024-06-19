@@ -19,8 +19,12 @@ var (
 
 // Load the ERC-20 ABI from file
 func loadABI() {
-	abiFile := "erc20/erc20.abi"
-	abiData, err := os.ReadFile(abiFile)
+	abiPath := os.Getenv("ERC20_ABI_PATH")
+	if abiPath == "" {
+		abiPath = "erc20/erc20.abi" // Default path
+	}
+
+	abiData, err := os.ReadFile(abiPath)
 	if err != nil {
 		log.Fatalf("Failed to read ABI file: %v", err)
 	}
