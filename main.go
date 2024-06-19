@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Initialize the database connection
-	db.InitDB(dbConnStr)
+	database := db.InitDB(dbConnStr)
 
 	// Initialize the ABI
 	parser.Init()
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Handle incoming logs
-	handleLogs(logs, sub)
+	handleLogs(logs, sub, database)
 }
 
 // loadConfig loads the configuration from the .env file.
@@ -107,7 +107,7 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 }
 
 // handleLogs processes the logs received from the Ethereum client.
-func handleLogs(logs chan types.Log, sub ethereum.Subscription) {
+func handleLogs(logs chan types.Log, sub ethereum.Subscription, db db.DBInterface) {
 	for {
 		select {
 		case err := <-sub.Err():
@@ -121,9 +121,9 @@ func handleLogs(logs chan types.Log, sub ethereum.Subscription) {
 
 			switch e := event.(type) {
 			case *parser.ERC20Transfer:
-				handleTransferEvent(e, vLog)
+				handleTransferEvent(e, vLog, db)
 			case *parser.ERC20Approval:
-				handleApprovalEvent(e, vLog)
+				handleApprovalEvent(e, vLog, db)
 			default:
 				log.Printf("Unknown event type")
 			}
@@ -132,7 +132,7 @@ func handleLogs(logs chan types.Log, sub ethereum.Subscription) {
 }
 
 // handleTransferEvent handles the Transfer event logs.
-func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log) {
+func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log, db db.DBInterface) {
 	from := e.From.Hex()
 	to := e.To.Hex()
 	fmt.Printf("Transfer Event: From %s To %s Value %s\n", from, to, e.Value.String())
@@ -143,7 +143,7 @@ func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log) {
 }
 
 // handleApprovalEvent handles the Approval event logs.
-func handleApprovalEvent(e *parser.ERC20Approval, vLog types.Log) {
+func handleApprovalEvent(e *parser.ERC20Approval, vLog types.Log, db db.DBInterface) {
 	owner := e.Owner.Hex()
 	spender := e.Spender.Hex()
 	fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", owner, spender, e.Value.String())
