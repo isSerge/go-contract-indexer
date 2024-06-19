@@ -36,7 +36,7 @@ This project uses the following tools and libraries:
 
 ### Configuration
 
-Create a `config.yaml` file in the project root:
+Update `config.yaml` file in the project root:
 
 ```yaml
 RPC_URL: 'your_rpc_url'

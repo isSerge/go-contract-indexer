@@ -23,7 +23,7 @@ func (m *MockSubscription) Err() <-chan error {
 }
 
 func initTestConfig() {
-	viper.SetConfigName("config_test") // Use a test-specific config file
+	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
