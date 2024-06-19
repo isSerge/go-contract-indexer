@@ -1,0 +1,24 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - deadcode
+    - unused
+    - structcheck
+    - varcheck
+    - misspell
+    - gofmt
+    - goimports
+    - dupl
+
+issues:
+  exclude-rules:
+    - linters:
+        - errcheck
+      text: 'Handle the error returned'
