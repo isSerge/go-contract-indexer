@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/joho/godotenv"
 
+	"go-contract-indexer/db"
 	"go-contract-indexer/erc20"
 	"go-contract-indexer/parser"
 )
@@ -24,13 +25,20 @@ func main() {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	// Get the RPC_URL and CONTRACT_ADDRESS from the .env file
+	// Get the RPC_URL, CONTRACT_ADDRESS, and DB_CONN_STR from the .env file
 	rpcURL := os.Getenv("RPC_URL")
 	contractAddress := os.Getenv("CONTRACT_ADDRESS")
+	dbConnStr := os.Getenv("DB_CONN_STR")
 
-	if rpcURL == "" || contractAddress == "" {
-		log.Fatal("RPC_URL or CONTRACT_ADDRESS is not set in the .env file")
+	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
+		log.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
 	}
+
+	// Initialize the database connection
+	db.InitDB(dbConnStr)
+
+	// Initialize the ABI
+	parser.Init()
 
 	// Connect to the Ethereum client
 	client, err := ethclient.Dial(rpcURL)
@@ -71,8 +79,20 @@ func main() {
 			switch e := event.(type) {
 			case *parser.ERC20Transfer:
 				fmt.Printf("Transfer Event: From %s To %s Value %s\n", e.From.Hex(), e.To.Hex(), e.Value.String())
+				from := e.From.Hex()
+				to := e.To.Hex()
+				err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Transfer", &from, &to, nil, nil, e.Value)
+				if err != nil {
+					log.Fatalf("Failed to save event: %v", err)
+				}
 			case *parser.ERC20Approval:
 				fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", e.Owner.Hex(), e.Spender.Hex(), e.Value.String())
+				owner := e.Owner.Hex()
+				spender := e.Spender.Hex()
+				err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Approval", nil, nil, &owner, &spender, e.Value)
+				if err != nil {
+					log.Fatalf("Failed to save event: %v", err)
+				}
 			default:
 				fmt.Printf("Unknown event type\n")
 			}
