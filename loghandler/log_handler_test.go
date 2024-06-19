@@ -36,7 +36,7 @@ func (m *MockSubscription) Err() <-chan error {
 	return args.Get(0).(<-chan error)
 }
 
-// MockDB is a mock of the db package's DBInterface
+// MockDB is a mock of the db package's SaveEvent function
 type MockDB struct {
 	mock.Mock
 }

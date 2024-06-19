@@ -1,0 +1,3 @@
+RPC_URL: 'wss://include-rpc-url-here'
+CONTRACT_ADDRESS: '0xinclude-contract-address-here'
+DB_CONN_STR: 'postgres://postgres:postgres@localhost:5432/go-contract-indexer?sslmode=disable'
