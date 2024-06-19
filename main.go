@@ -52,7 +52,10 @@ func main() {
 	}
 
 	// Print contract address, token name, and symbol
-	printTokenInfo(client, contractAddr)
+	err = printTokenInfo(client, contractAddr)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	for {
 		select {
@@ -65,26 +68,28 @@ func main() {
 	}
 }
 
-func printTokenInfo(client *ethclient.Client, contractAddr common.Address) {
+func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error {
 	token, err := erc20.NewErc20(contractAddr, client)
 	if err != nil {
-		log.Fatalf("Failed to instantiate token contract: %v", err)
+		return fmt.Errorf("failed to instantiate token contract: %v", err)
 	}
 
 	callOpts := &bind.CallOpts{}
 
 	name, err := token.Name(callOpts)
 	if err != nil {
-		log.Fatalf("Failed to get token name: %v", err)
+		return fmt.Errorf("failed to get token name: %v", err)
 	}
 
 	symbol, err := token.Symbol(callOpts)
 	if err != nil {
-		log.Fatalf("Failed to get token symbol: %v", err)
+		return fmt.Errorf("failed to get token symbol: %v", err)
 	}
 
-	fmt.Printf("Watching for events from ERC-20 contract: ")
+	fmt.Printf("Watching for events from ERC-20 contract: \n")
 	fmt.Printf("Address: %s\n", contractAddr.Hex())
 	fmt.Printf("Name: %s\n", name)
 	fmt.Printf("Symbol: %s\n", symbol)
+
+	return nil
 }
