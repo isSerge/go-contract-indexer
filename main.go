@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -20,7 +21,10 @@ import (
 
 func main() {
 	// Load configuration
-	rpcURL, contractAddress, dbConnStr := loadConfig()
+	rpcURL, contractAddress, dbConnStr, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Error loading configuration: %v", err)
+	}
 
 	// Initialize the database connection
 	db.InitDB(dbConnStr)
@@ -58,10 +62,10 @@ func main() {
 }
 
 // loadConfig loads the configuration from the .env file.
-func loadConfig() (string, string, string) {
+func loadConfig() (string, string, string, error) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		return "", "", "", fmt.Errorf("error loading .env file: %v", err)
 	}
 
 	rpcURL := os.Getenv("RPC_URL")
@@ -69,10 +73,10 @@ func loadConfig() (string, string, string) {
 	dbConnStr := os.Getenv("DB_CONN_STR")
 
 	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
-		log.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
+		return "", "", "", errors.New("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
 	}
 
-	return rpcURL, contractAddress, dbConnStr
+	return rpcURL, contractAddress, dbConnStr, nil
 }
 
 // printTokenInfo prints the token information for the given contract address.
