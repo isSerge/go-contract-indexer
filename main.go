@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/joho/godotenv"
 
-	"go-event-watcher/erc20"
+	"go-contract-indexer/erc20"
 )
 
 func main() {
@@ -86,7 +86,7 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 		return fmt.Errorf("failed to get token symbol: %v", err)
 	}
 
-	fmt.Printf("Watching for events from ERC-20 contract: \n")
+	fmt.Printf("Starting indexer for ERC-20 contract: \n")
 	fmt.Printf("Address: %s\n", contractAddr.Hex())
 	fmt.Printf("Name: %s\n", name)
 	fmt.Printf("Symbol: %s\n", symbol)

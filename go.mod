@@ -1,4 +1,4 @@
-module go-event-watcher
+module go-contract-indexer
 
 go 1.22.4
 
