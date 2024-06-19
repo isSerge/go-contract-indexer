@@ -2,28 +2,40 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 
 	"go-contract-indexer/db"
 	"go-contract-indexer/erc20"
 	"go-contract-indexer/parser"
 )
 
+func init() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
+	}
+}
+
 func main() {
 	// Load configuration
-	rpcURL, contractAddress, dbConnStr, err := loadConfig()
-	if err != nil {
-		log.Fatalf("Error loading configuration: %v", err)
+	rpcURL := viper.GetString("RPC_URL")
+	contractAddress := viper.GetString("CONTRACT_ADDRESS")
+	dbConnStr := viper.GetString("DB_CONN_STR")
+
+	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
+		log.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the configuration")
 	}
 
 	// Initialize the database connection
@@ -59,24 +71,6 @@ func main() {
 
 	// Handle incoming logs
 	handleLogs(logs, sub, database)
-}
-
-// loadConfig loads the configuration from the .env file.
-func loadConfig() (string, string, string, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return "", "", "", fmt.Errorf("error loading .env file: %v", err)
-	}
-
-	rpcURL := os.Getenv("RPC_URL")
-	contractAddress := os.Getenv("CONTRACT_ADDRESS")
-	dbConnStr := os.Getenv("DB_CONN_STR")
-
-	if rpcURL == "" || contractAddress == "" || dbConnStr == "" {
-		return "", "", "", errors.New("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the .env file")
-	}
-
-	return rpcURL, contractAddress, dbConnStr, nil
 }
 
 // printTokenInfo prints the token information for the given contract address.
