@@ -3,19 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"go-contract-indexer/db"
 	"go-contract-indexer/erc20"
 	"go-contract-indexer/parser"
 )
+
+var log = logrus.New()
 
 func init() {
 	viper.SetConfigName("config")
@@ -26,6 +28,11 @@ func init() {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
+
+	log.Formatter = &logrus.TextFormatter{
+		FullTimestamp: true,
+	}
+	log.Level = logrus.DebugLevel
 }
 
 func main() {
@@ -92,10 +99,10 @@ func printTokenInfo(client *ethclient.Client, contractAddr common.Address) error
 		return fmt.Errorf("failed to get token symbol: %v", err)
 	}
 
-	fmt.Printf("Starting indexer for ERC-20 contract: \n")
-	fmt.Printf("Address: %s\n", contractAddr.Hex())
-	fmt.Printf("Name: %s\n", name)
-	fmt.Printf("Symbol: %s\n", symbol)
+	log.Infof("Starting indexer for ERC-20 contract: \n")
+	log.Infof("Address: %s\n", contractAddr.Hex())
+	log.Infof("Name: %s\n", name)
+	log.Infof("Symbol: %s\n", symbol)
 
 	return nil
 }
@@ -129,7 +136,7 @@ func handleLogs(logs chan types.Log, sub ethereum.Subscription, db db.DBInterfac
 func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log, db db.DBInterface) {
 	from := e.From.Hex()
 	to := e.To.Hex()
-	fmt.Printf("Transfer Event: From %s To %s Value %s\n", from, to, e.Value.String())
+	log.Infof("Transfer Event: From %s To %s Value %s\n", from, to, e.Value.String())
 	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Transfer", &from, &to, nil, nil, e.Value)
 	if err != nil {
 		log.Printf("Failed to save transfer event: %v", err)
@@ -140,7 +147,7 @@ func handleTransferEvent(e *parser.ERC20Transfer, vLog types.Log, db db.DBInterf
 func handleApprovalEvent(e *parser.ERC20Approval, vLog types.Log, db db.DBInterface) {
 	owner := e.Owner.Hex()
 	spender := e.Spender.Hex()
-	fmt.Printf("Approval Event: Owner %s Spender %s Value %s\n", owner, spender, e.Value.String())
+	log.Infof("Approval Event: Owner %s Spender %s Value %s\n", owner, spender, e.Value.String())
 	err := db.SaveEvent(vLog.BlockNumber, vLog.TxHash.Hex(), "Approval", nil, nil, &owner, &spender, e.Value)
 	if err != nil {
 		log.Printf("Failed to save approval event: %v", err)
