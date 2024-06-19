@@ -59,9 +59,6 @@ func TestLoadConfig_Error(t *testing.T) {
 	// Clear any previously set environment variables
 	viper.Reset()
 
-	// Initialize without setting environment variables to test error case
-	initTestConfig()
-
 	rpcURL := viper.GetString("RPC_URL")
 	contractAddress := viper.GetString("CONTRACT_ADDRESS")
 	dbConnStr := viper.GetString("DB_CONN_STR")

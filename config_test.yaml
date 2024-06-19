@@ -1,0 +1,3 @@
+RPC_URL: 'wss://ethereum-mainnet.com'
+CONTRACT_ADDRESS: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+DB_CONN_STR: 'postgres://postgres:postgres@localhost:5432/go-contract-indexer?sslmode=disable'
