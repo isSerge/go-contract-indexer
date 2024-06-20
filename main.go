@@ -66,7 +66,7 @@ func main() {
 		logger.Fatal("RPC_URL, CONTRACT_ADDRESS, or DB_CONN_STR is not set in the configuration")
 	}
 
-	// Initialize the database connection
+	// Initialize the database connection with retry mechanism
 	database := db.InitDB(dbConnStr)
 	defer database.Close()
 

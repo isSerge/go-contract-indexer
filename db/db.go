@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"math/big"
+	"time"
 )
 
 // Interface defines the methods that our database needs to implement
@@ -17,16 +18,11 @@ type DB struct {
 	conn *sql.DB
 }
 
-// InitDB initializes the database connection and returns the DB instance
+// InitDB initializes the database connection with retry mechanism and returns the DB instance
 func InitDB(connStr string) Interface {
-	conn, err := sql.Open("postgres", connStr)
+	conn, err := connectWithRetry(connStr, 10, 2*time.Second)
 	if err != nil {
-		log.Fatalf("Failed to connect to the database: %v", err)
-	}
-
-	err = conn.Ping()
-	if err != nil {
-		log.Fatalf("Failed to ping the database: %v", err)
+		log.Fatalf("Could not connect to the database: %v", err)
 	}
 
 	log.Println("Database connected successfully")
@@ -54,6 +50,30 @@ func InitDB(connStr string) Interface {
 	log.Println("Table erc20_events exists or created successfully")
 
 	return &DB{conn: conn}
+}
+
+// connectWithRetry attempts to connect to the database with retries.
+func connectWithRetry(dsn string, retries int, delay time.Duration) (*sql.DB, error) {
+	var db *sql.DB
+	var err error
+	for i := 0; i < retries; i++ {
+		db, err = sql.Open("postgres", dsn)
+		if err != nil {
+			log.Printf("Failed to connect to the database: %v. Retrying...", err)
+			time.Sleep(delay)
+			continue
+		}
+
+		err = db.Ping()
+		if err == nil {
+			return db, nil
+		}
+
+		log.Printf("Failed to ping the database: %v. Retrying...", err)
+		time.Sleep(delay)
+	}
+
+	return nil, err
 }
 
 // SaveEvent saves an indexed event to the database
