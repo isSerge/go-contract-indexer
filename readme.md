@@ -86,3 +86,8 @@ docker-compose down
 Ensure your [docker-compose.yml](docker-compose.yml) file includes the volume
 for [config.yml](config.yaml) and sets up the services correctly. This file
 defines the services required to run the application.
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE)
+file for details.
