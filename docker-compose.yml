@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_CONN_STR: "postgres://postgres:postgres@db:5432/go_contract_indexer?sslmode=disable"
+    volumes:
+      - ./config.yml:/app/config.yml
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: go_contract_indexer
+    ports:
+      - "5432:5432"
