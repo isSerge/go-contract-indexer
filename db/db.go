@@ -5,6 +5,9 @@ import (
 	"log"
 	"math/big"
 	"time"
+
+	// import postgres driver
+	_ "github.com/lib/pq"
 )
 
 // Interface defines the methods that our database needs to implement
