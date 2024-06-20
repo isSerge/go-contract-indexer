@@ -87,6 +87,51 @@ Ensure your [docker-compose.yml](docker-compose.yml) file includes the volume
 for [config.yml](config.yaml) and sets up the services correctly. This file
 defines the services required to run the application.
 
+## Potential Features and Improvements
+
+### Historical Data Fetching
+
+- **Fetch Historical Events**: Fetch and index historical events from the
+  contract.
+- **Start Block Configuration**: Provide configuration to specify the start
+  block for fetching historical events.
+
+### Event Parsing
+
+- **Additional Event Types**: Extend support to parse and handle other ERC-20
+  events or events from other types of smart contracts.
+
+### Database Enhancements
+
+- **Batch Inserts**: Implement batch inserts for handling a high volume of
+  events more efficiently.
+- **Database Indexing**: Add indexing to the database tables to improve query
+  performance.
+- **Migration and Schema Version Management**: Use tools like `golang-migrate`
+  to manage database schema changes and versioning.
+
+### Logging and Monitoring
+
+- **Structured Logging**: Implement structured logging with log levels for
+  better traceability and debugging.
+- **Monitoring and Alerting**: Integrate with monitoring tools like Prometheus
+  and Grafana to visualize metrics and set up alerts.
+
+### Testing and Quality Assurance
+
+- **Unit Tests**: Increase the coverage of unit tests across all components.
+- **Integration Tests**: Implement comprehensive integration tests to ensure all
+  components work together as expected.
+
+### API Endpoints
+
+- Provide RESTful API endpoints for accessing event data and application status.
+
+### Deployment
+
+- **Docker and CI/CD**: Update CI/CD pipelines to push Docker images to a
+  container registry.
+
 ### License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE)
